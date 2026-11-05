@@ -1,0 +1,3 @@
+import Link from "next/link"
+
+export default function SignupSuccessPage() { return <main className="auth-page"><section className="auth-panel"><Link href="/" className="auth-brand"><span>COMMON</span><small>ONE</small></Link><div className="auth-copy"><p className="eyebrow">Almost there</p><h1>Check your inbox.</h1><p>We sent a confirmation link to your email. Once you confirm, your private workspace will be ready.</p></div><Link href="/login" className="primary-button auth-button-link">Back to sign in</Link></section><aside className="auth-aside"><p className="eyebrow">Your data stays yours</p><blockquote>“A calmer system makes better decisions possible.”</blockquote><span>COMMON ONE · PRIVATE BY DEFAULT</span></aside></main> }

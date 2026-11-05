@@ -772,4 +772,11 @@ button, input {
   .feature-list {
     max-width: 100%;
   }
+
+  .auth-page { display: block; }
+  .auth-panel { min-height: 100vh; padding: 28px 24px 44px; gap: 24px; }
+  .auth-copy h1 { font-size: 42px; }
+  .auth-aside { display: none; }
 }
+
+.auth-page{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,42%);background:#090b16;color:#f5f7ff}.auth-panel{padding:44px clamp(24px,8vw,110px);display:flex;flex-direction:column;justify-content:center;gap:30px}.auth-brand{display:inline-flex;align-items:center;gap:3px;color:#f5f7ff;font-size:15px;font-weight:700;letter-spacing:.14em}.auth-brand small{font-size:9px;letter-spacing:.18em}.auth-copy{max-width:520px}.auth-copy h1{margin:8px 0 10px;font:600 clamp(36px,5vw,60px)/.98 var(--font-display);letter-spacing:-.05em}.auth-copy p:not(.eyebrow){color:#aeb5c8;line-height:1.65;max-width:480px}.auth-form{display:flex;flex-direction:column;gap:16px;max-width:470px}.auth-form label{display:flex;flex-direction:column;gap:8px;color:#dfe4f3;font-size:12px;font-weight:600}.auth-form input{width:100%;border:1px solid #252b42;background:#111526;color:#f5f7ff;border-radius:8px;padding:14px 15px;font:inherit;outline:none}.auth-form input:focus{border-color:#6f6bff;box-shadow:0 0 0 3px rgba(111,107,255,.16)}.primary-button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:8px;padding:14px 18px;background:#dfe4ff;color:#101324;font-weight:700;cursor:pointer;text-decoration:none}.primary-button:disabled{opacity:.6;cursor:wait}.auth-button-link{max-width:470px}.form-error{color:#ff9b9b!important;font-size:13px}.auth-links{display:flex;flex-wrap:wrap;gap:18px;color:#8f96aa;font-size:12px}.auth-links a{color:#dfe4ff;text-decoration:none}.auth-aside{display:flex;flex-direction:column;justify-content:flex-end;gap:20px;padding:60px 52px;background:radial-gradient(circle at 20% 10%,rgba(111,107,255,.22),transparent 34%),#11152a;border-left:1px solid #252b42}.auth-aside blockquote{font:500 clamp(26px,3vw,42px)/1.08 var(--font-display);letter-spacing:-.04em;color:#eef0ff;max-width:480px;margin:0}.auth-aside span{font-size:10px;letter-spacing:.14em;color:#858da5}

@@ -1,5 +1,7 @@
-import Link from 'next/link'
+"use client"
 
-export default function ForgotPasswordPage() {
-  return <main className="auth-page"><div className="auth-card"><Link className="marketing-brand" href="/">COMMON <small>ONE</small></Link><p className="common-eyebrow">Account access</p><h1>Reset your password.</h1><p className="auth-note">Password recovery will be connected with authentication in a later phase.</p><label>Email<input type="email" placeholder="you@example.com" /></label><button className="common-primary" disabled>Send reset link</button><p className="auth-foot"><Link href="/login">Back to sign in</Link></p></div></main>
-}
+import { FormEvent, useState } from "react"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+
+export default function ForgotPasswordPage() { const [email, setEmail] = useState(""); const [sent, setSent] = useState(false); const [loading, setLoading] = useState(false); async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setLoading(true); await createClient().auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth/callback` }); setSent(true); setLoading(false) } return <main className="auth-page"><section className="auth-panel"><Link href="/" className="auth-brand"><span>COMMON</span><small>ONE</small></Link><div className="auth-copy"><p className="eyebrow">Reset access</p><h1>Find your way back.</h1><p>{sent ? "If an account exists for that email, a reset link is on its way." : "Enter your email and we’ll send a secure reset link."}</p></div>{!sent && <form onSubmit={submit} className="auth-form"><label>Email<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /></label><button className="primary-button" disabled={loading}>{loading ? "Sending…" : "Send reset link"}</button></form>}<div className="auth-links"><Link href="/login">Back to sign in</Link></div></section><aside className="auth-aside"><p className="eyebrow">A small reset</p><blockquote>“You can always begin again with one clear next step.”</blockquote><span>COMMON ONE · PERSONAL INTELLIGENCE</span></aside></main> }
