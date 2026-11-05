@@ -3,17 +3,18 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { Activity, Aperture, ArrowUpRight, Bell, Check, ChevronDown, CircleHelp, Compass, FilePlus2, FolderOpen, Gauge, Lightbulb, Menu, Moon, Plus, Settings2, ShieldCheck, Sparkles, Sun, Target, Upload, UserRound, X } from 'lucide-react'
 
 const primary = [
-  { href: '/dashboard', label: 'Overview', icon: '◈' },
-  { href: '/capture', label: 'Capture', icon: '＋' },
-  { href: '/memory', label: 'Memory', icon: '⌁' },
-  { href: '/timeline', label: 'Timeline', icon: '◷' },
+  { href: '/dashboard', label: 'Overview', icon: Gauge },
+  { href: '/capture', label: 'Capture', icon: Plus },
+  { href: '/memory', label: 'Memory', icon: FolderOpen },
+  { href: '/timeline', label: 'Timeline', icon: Activity },
 ]
 const intelligence = [
-  { href: '/prevention', label: 'Prevention', icon: '◇' },
-  { href: '/actions', label: 'Actions', icon: '✓' },
-  { href: '/insights', label: 'Insights', icon: '↗' },
+  { href: '/prevention', label: 'Prevention', icon: ShieldCheck },
+  { href: '/actions', label: 'Actions', icon: Check },
+  { href: '/insights', label: 'Insights', icon: Lightbulb },
 ]
 
 const pageCopy: Record<string, { eyebrow: string; title: string; description: string }> = {
@@ -31,27 +32,29 @@ const pageCopy: Record<string, { eyebrow: string; title: string; description: st
 export function CommonOneShell({ children }: { children?: React.ReactNode }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [lightMode, setLightMode] = useState(false)
   const copy = pageCopy[pathname] ?? pageCopy['/dashboard']
   const isDashboard = pathname === '/dashboard' || pathname === '/'
 
   return (
-    <main className="common-app">
+    <main className={`common-app ${lightMode ? 'light-mode' : ''}`}>
       <aside className={`common-sidebar ${mobileOpen ? 'is-open' : ''}`}>
         <div className="common-brand"><span className="common-brand-mark">C</span><span>COMMON</span><small>ONE</small></div>
         <div className="sidebar-context"><span className="context-dot" /> Maya’s space <span>⌄</span></div>
         <p className="sidebar-label">Navigate</p>
         <nav className="common-nav" aria-label="Main navigation">
-          {[...primary, ...intelligence].map((item, index) => (
-            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={`common-nav-item ${(pathname === item.href || (pathname === '/' && item.href === '/dashboard')) ? 'active' : ''}`}><span className="nav-glyph">{item.icon}</span>{item.label}{index === 1 && <span className="nav-pulse" />}</Link>
-          ))}
+          {[...primary, ...intelligence].map((item, index) => {
+            const Icon = item.icon
+            return <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={`common-nav-item ${(pathname === item.href || (pathname === '/' && item.href === '/dashboard')) ? 'active' : ''}`}><span className="nav-glyph"><Icon /></span>{item.label}{index === 1 && <span className="nav-pulse" />}</Link>
+          })}
         </nav>
         <div className="sidebar-footer">
-          <Link href="/settings" className={`common-nav-item ${pathname.startsWith('/settings') ? 'active' : ''}`}><span className="nav-glyph">⚙</span>Settings</Link>
+          <Link href="/settings" className={`common-nav-item ${pathname.startsWith('/settings') ? 'active' : ''}`}><span className="nav-glyph"><Settings2 /></span>Settings</Link>
           <div className="profile-chip"><span className="profile-avatar">MC</span><span><b>Maya Chen</b><small>Private workspace</small></span><span className="more-dots">•••</span></div>
         </div>
       </aside>
       <section className="common-main">
-        <header className="common-topbar"><button className="mobile-menu" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle navigation">☰</button><div className="topbar-crumb">Maya’s space <span>/</span> {copy.title.replace('Maya.', 'Overview')}</div><div className="topbar-actions"><span className="demo-pill">DESIGN PREVIEW</span><button className="circle-button" aria-label="Notifications">♧</button><span className="top-avatar">MC</span></div></header>
+        <header className="common-topbar"><button className="mobile-menu" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle navigation">{mobileOpen ? <X /> : <Menu />}</button><div className="topbar-crumb">Maya’s space <span>/</span> {copy.title.replace('Maya.', 'Overview')}</div><div className="topbar-actions"><span className="demo-pill">DESIGN PREVIEW</span><button className="circle-button" onClick={() => setLightMode(!lightMode)} aria-label={lightMode ? 'Use dark mode' : 'Use light mode'}>{lightMode ? <Moon /> : <Sun />}</button><button className="circle-button" aria-label="Notifications"><Bell /></button><span className="top-avatar">MC</span></div></header>
         <div className="common-content">
           {!isDashboard && <div className="common-page-head"><div><p className="common-eyebrow">{copy.eyebrow}</p><h1>{copy.title}</h1><p className="common-lede">{copy.description}</p></div>{pathname === '/capture' ? <Link className="common-primary" href="/dashboard">Done</Link> : null}</div>}
           {isDashboard ? <Dashboard /> : children}
