@@ -15,6 +15,7 @@ const intelligence = [
   { href: '/prevention', label: 'Prevention', icon: ShieldCheck },
   { href: '/actions', label: 'Actions', icon: Check },
   { href: '/insights', label: 'Insights', icon: Lightbulb },
+  { href: '/assistant', label: 'Intelligence', icon: Sparkles },
 ]
 
 const pageCopy: Record<string, { eyebrow: string; title: string; description: string }> = {

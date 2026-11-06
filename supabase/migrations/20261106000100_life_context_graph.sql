@@ -229,3 +229,22 @@ create index if not exists prevention_alerts_user_status_idx on public.preventio
 create index if not exists action_tasks_user_status_due_idx on public.action_tasks(user_id, status, due_at);
 create index if not exists notifications_user_schedule_idx on public.in_app_notifications(user_id, scheduled_for, read_at);
 do $$ declare t text; begin foreach t in array array['prevention_alerts','action_tasks','task_history','in_app_notifications'] loop execute format('alter table public.%I enable row level security',t); execute format('drop policy if exists %I_select on public.%I',t,t); execute format('drop policy if exists %I_insert on public.%I',t,t); execute format('drop policy if exists %I_update on public.%I',t,t); execute format('drop policy if exists %I_delete on public.%I',t,t); execute format('create policy %I_select on public.%I for select using(auth.uid() = user_id)',t,t); execute format('create policy %I_insert on public.%I for insert with check(auth.uid() = user_id)',t,t); execute format('create policy %I_update on public.%I for update using(auth.uid() = user_id) with check(auth.uid() = user_id)',t,t); execute format('create policy %I_delete on public.%I for delete using(auth.uid() = user_id)',t,t); end loop; end $$;
+
+create table if not exists public.assistant_conversations (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, title text not null default 'New conversation', created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table if not exists public.assistant_messages (id uuid primary key default gen_random_uuid(), conversation_id uuid not null references public.assistant_conversations(id) on delete cascade, user_id uuid not null references auth.users(id) on delete cascade, role text not null check (role in ('user','assistant','system')), content text not null check (char_length(content) <= 20000), sources jsonb not null default '[]'::jsonb, created_at timestamptz not null default now());
+create index if not exists assistant_conversations_user_updated_idx on public.assistant_conversations(user_id, updated_at desc);
+create index if not exists assistant_messages_conversation_created_idx on public.assistant_messages(conversation_id, created_at);
+alter table public.assistant_conversations enable row level security;
+alter table public.assistant_messages enable row level security;
+drop policy if exists assistant_conversations_select_own on public.assistant_conversations;
+drop policy if exists assistant_conversations_insert_own on public.assistant_conversations;
+drop policy if exists assistant_conversations_update_own on public.assistant_conversations;
+drop policy if exists assistant_conversations_delete_own on public.assistant_conversations;
+create policy assistant_conversations_select_own on public.assistant_conversations for select using (auth.uid() = user_id);
+create policy assistant_conversations_insert_own on public.assistant_conversations for insert with check (auth.uid() = user_id);
+create policy assistant_conversations_update_own on public.assistant_conversations for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy assistant_conversations_delete_own on public.assistant_conversations for delete using (auth.uid() = user_id);
+drop policy if exists assistant_messages_select_own on public.assistant_messages;
+drop policy if exists assistant_messages_insert_own on public.assistant_messages;
+create policy assistant_messages_select_own on public.assistant_messages for select using (auth.uid() = user_id and exists (select 1 from public.assistant_conversations c where c.id = conversation_id and c.user_id = auth.uid()));
+create policy assistant_messages_insert_own on public.assistant_messages for insert with check (auth.uid() = user_id and exists (select 1 from public.assistant_conversations c where c.id = conversation_id and c.user_id = auth.uid()));
