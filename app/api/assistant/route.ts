@@ -8,8 +8,16 @@ const model = process.env.COMMON_ONE_AI_MODEL || "alibaba/qwen-3-14b"
 
 async function getUser() { const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); return { supabase, user } }
 
-export async function GET() {
+export async function GET(request: Request) {
   const { supabase, user } = await getUser(); if (!user) return NextResponse.json({ error: "Sign in to use the assistant." }, { status: 401 })
+  const conversationId = new URL(request.url).searchParams.get("conversationId")
+  if (conversationId) {
+    const { data: conversation } = await supabase.from("assistant_conversations").select("id,title").eq("id", conversationId).eq("user_id", user.id).maybeSingle()
+    if (!conversation) return NextResponse.json({ error: "Conversation not found." }, { status: 404 })
+    const { data: messages, error } = await supabase.from("assistant_messages").select("role,content,sources,created_at").eq("conversation_id", conversationId).eq("user_id", user.id).order("created_at", { ascending: true }).limit(100)
+    if (error) return NextResponse.json({ error: "Unable to load conversation." }, { status: 500 })
+    return NextResponse.json({ conversation, messages: messages ?? [] })
+  }
   const { data, error } = await supabase.from("assistant_conversations").select("id,title,created_at,updated_at").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(30)
   if (error) return NextResponse.json({ error: "Unable to load conversations." }, { status: 500 }); return NextResponse.json({ conversations: data ?? [] })
 }
