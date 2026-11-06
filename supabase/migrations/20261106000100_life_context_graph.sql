@@ -204,3 +204,19 @@ drop trigger if exists relationships_owner_check on public.context_relationships
 create trigger relationships_owner_check before insert or update on public.context_relationships for each row execute function public.validate_life_context_owner();
 drop trigger if exists commitments_owner_check on public.commitments;
 create trigger commitments_owner_check before insert or update on public.commitments for each row execute function public.validate_life_context_owner();
+
+-- Private universal-capture storage and upload metadata.
+alter type public.processing_status add value if not exists 'uploaded';
+alter type public.processing_status add value if not exists 'completed';
+alter table public.captured_items add column if not exists file_name text;
+alter table public.captured_items add column if not exists mime_type text;
+alter table public.captured_items add column if not exists byte_size bigint check (byte_size is null or byte_size >= 0);
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('private-captures', 'private-captures', false, 26214400, array['application/pdf','image/png','image/jpeg','text/plain','application/vnd.openxmlformats-officedocument.wordprocessingml.document','audio/mpeg','audio/wav','audio/webm','audio/mp4'])
+on conflict (id) do update set public = false, file_size_limit = 26214400, allowed_mime_types = excluded.allowed_mime_types;
+drop policy if exists private_captures_select on storage.objects;
+drop policy if exists private_captures_insert on storage.objects;
+drop policy if exists private_captures_delete on storage.objects;
+create policy private_captures_select on storage.objects for select to authenticated using (bucket_id = 'private-captures' and (storage.foldername(name))[1] = (select auth.uid()::text));
+create policy private_captures_insert on storage.objects for insert to authenticated with check (bucket_id = 'private-captures' and (storage.foldername(name))[1] = (select auth.uid()::text));
+create policy private_captures_delete on storage.objects for delete to authenticated using (bucket_id = 'private-captures' and (storage.foldername(name))[1] = (select auth.uid()::text));
