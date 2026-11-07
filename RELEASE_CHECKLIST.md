@@ -38,6 +38,7 @@ pnpm run test:auth-rls
 ## Deployment blockers
 
 - Do not release until `pnpm run test:auth-rls` passes against the target Supabase project.
-- Complete a separate authenticated browser pass for signup confirmation, password reset, capture upload/extraction, graph relationships, prevention scan, actions, notifications, and assistant citations.
-- Review and accept the remaining development-only `minimatch` advisory or upgrade the Next ESLint toolchain when a compatible patched version is available.
+- Authenticated browser pass completed for login, protected navigation, text capture upload, action creation/completion, prevention empty-state scan, and session expiration. Signup confirmation, password reset completion, extraction, graph relationships, notifications, and assistant citations remain blocked or unverified as recorded in `QA_REPORT.md`.
+- Review and accept the remaining development-only `minimatch` advisory or upgrade the Next ESLint toolchain when a compatible patched version is available. Do not force an incompatible override.
 - Keep the service-role key limited to CI/E2E secrets and rotate it if it is ever exposed.
+- Read `DEPLOYMENT.md` before any private-beta deployment or database change.

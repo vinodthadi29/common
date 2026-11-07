@@ -4,7 +4,7 @@ Date: 2026-11-06
 
 ## Scope
 
-Tested authentication entry points, protected navigation, server-side API authorization, assistant privacy controls, build integrity, responsive layout, accessibility tree output, security checks, and dependency health. Destructive tests were not run against the connected database and no real mailbox was used.
+Tested authentication entry points, protected navigation, server-side API authorization, assistant privacy controls, build integrity, responsive layout, accessibility tree output, security checks, dependency health, and a controlled authenticated browser pass. The authenticated RLS harness and browser fixture cleanup ran against the connected project; no real mailbox was used.
 
 ## Passed tests
 
@@ -20,6 +20,11 @@ Tested authentication entry points, protected navigation, server-side API author
 - Assistant UI has keyboard-submit protection for IME composition, accessible labels, source chips, privacy export, and conversation deletion controls.
 - Production build emitted baseline security headers configuration.
 - `pnpm run test:auth-rls` passed against the connected Supabase project: two real users, own reads, zero cross-user reads, zero cross-user updates, zero cross-user deletes, zero anonymous reads, and zero invalid-session reads. Generated users and rows were deleted in cleanup.
+- Authenticated browser login passed with a confirmed test account; protected dashboard navigation loaded only after login.
+- Authenticated capture upload passed for a text document and private storage/row creation returned the expected “Stored privately” state. Generated storage and database fixtures were deleted in cleanup.
+- Authenticated Action Center create and persisted completion passed; the task disappeared from open actions after completion.
+- Authenticated Prevention page and scan passed with the safe empty state and no active risks.
+- Session expiration simulation passed by clearing browser cookies and confirming `/dashboard` redirected to `/login?next=%2Fdashboard`.
 
 ## Resolved in follow-up
 
@@ -31,9 +36,11 @@ Tested authentication entry points, protected navigation, server-side API author
 
 ## Failed or blocked tests
 
-- Full authenticated E2E execution requires an approved isolated Supabase test environment. The harness is destructive to only its generated fixtures, but must not run against production data without that approval.
-- `pnpm audit --audit-level high` now passes with zero high/critical vulnerabilities. One moderate `minimatch` advisory remains in the ESLint-only development toolchain because the current `eslint-config-next` dependency graph does not yet accept the patched major version.
-- Signup confirmation, password recovery completion, uploads, extraction, graph relationships, deadline detection, prevention persistence, action completion, notifications, and authenticated AI generation still require an authenticated browser/data fixture pass.
+- Signup email verification and password reset completion are blocked on a controlled mailbox; form rendering and reset request behavior were not treated as completion.
+- PDF/image uploads, extraction, graph relationships, deadline detection with seeded commitments, prevention resolve/deduplication, notification delivery, and document deletion still need dedicated fixtures or an authenticated browser pass.
+- Text capture upload passed, but AI extraction returned the product’s temporary-unavailable state in preview; authenticated extraction and assistant generation remain blocked by AI Gateway/model availability.
+- The assistant question flow rendered and safely reported temporary unavailability; source citation and prompt-injection behavior remain unverified until model access is available.
+- `pnpm audit --audit-level high` passes with zero high/critical vulnerabilities. One moderate `minimatch` advisory remains only in the ESLint development toolchain: vulnerable `>=7.0.0 <11.0.1`, patched `>=11.0.1`; `eslint@10.14.0` requires `^10.2.6`, so no compatible safe override was applied. Production code does not import this package.
 
 ## Fixed bugs
 
@@ -46,12 +53,12 @@ Tested authentication entry points, protected navigation, server-side API author
 
 ## Remaining limitations
 
-- A real authenticated test matrix is still required using two separate users to prove RLS cannot cross-read or cross-write data.
-- Email confirmation and reset-link flows need a controlled mailbox or Supabase test harness.
-- Upload/extraction and context graph workflows need fixture documents and database assertions.
-- AI assistant success, citations, and rate-limit behavior need an authenticated model-backed run; only unauthenticated protection and static safeguards were verified.
-- Dependency audit remediation and an ESLint setup are outstanding.
+- Two-user RLS and session-boundary coverage passed; document access is covered at the database ownership level, while a second-user browser session remains a separate optional UI check.
+- Email confirmation and reset-link completion need a controlled mailbox.
+- PDF/image upload, extraction, context graph relationships, seeded deadline detection, prevention resolve/deduplication, notifications, and document deletion need dedicated fixtures.
+- AI assistant success, citations, prompt-injection resistance, and rate-limit behavior need an available authenticated model-backed run.
+- The only remaining audit finding is the documented development-only `minimatch` advisory.
 
 ## Production readiness assessment
 
-**Not production-ready.** High and critical dependency findings, missing lint tooling, and deprecated middleware are resolved. Release remains blocked until the real authenticated Supabase RLS harness passes against an isolated target environment, the authenticated browser workflow matrix is completed, and the remaining development-only moderate `minimatch` advisory is accepted or removed.
+**Not ready for beta invitation yet.** High and critical dependency findings, missing lint tooling, deprecated middleware, and the RLS ownership boundary are resolved. A controlled private beta should wait for AI Gateway/model availability, seeded extraction/prevention/notification fixtures, email verification/reset completion, and explicit release-owner acceptance of the development-only `minimatch` advisory. Backup and recovery instructions are now documented in `DEPLOYMENT.md`.

@@ -1,0 +1,49 @@
+# COMMON ONE deployment and recovery
+
+## Current release
+
+- Working branch: `v0/action-prevention-systems`
+- Local release-hardening commit: `3825051`
+- Current beta-readiness changes are intentionally local and must not be pushed or deployed without explicit approval.
+- Preview: `https://common.v0.build`
+
+## Required project inputs
+
+The app requires Supabase URL and publishable/anon key variables at runtime. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only and use it only for isolated E2E administration or approved recovery scripts. AI generation uses the Vercel AI Gateway through the configured model name.
+
+Never copy secrets into Git, QA reports, blueprints, browser fixtures, or client-side code. Rotate the service-role key immediately if it appears in logs or a committed file.
+
+## Database migration status
+
+The repository currently contains one migration: `supabase/migrations/20261106000100_life_context_graph.sql`. It creates the life-context tables, indexes, RLS policies, storage policies, and assistant/action/prevention structures used by the app. Apply migrations through the approved Supabase migration workflow against a backup or isolated environment first; do not hand-edit production tables.
+
+Before a production migration:
+
+1. Confirm the target project and branch.
+2. Take a database backup or point-in-time recovery checkpoint.
+3. Apply the migration in a staging project.
+4. Run `pnpm run test:auth-rls` with `RUN_AUTH_E2E=1` against that isolated project.
+5. Verify the storage bucket `private-captures` and its owner-scoped policies.
+6. Apply to production during an approved change window.
+
+## Backup checklist
+
+- Keep the exact Git commit and lockfile that produced the deployment.
+- Export Supabase schema/migration state and confirm the migration file is present in the release artifact.
+- Enable and verify Supabase point-in-time recovery for the production project.
+- Record the project URL, migration version, deployment URL, and environment-variable names in the team release record; never record secret values.
+- Keep a recent data export available through the authenticated `/api/privacy/export` control for user-requested portability.
+- Store E2E fixture credentials only in a temporary secret store and delete them after the run.
+
+## Recovery procedure
+
+1. Stop the rollout and preserve logs and the last known-good commit.
+2. If application-only, redeploy the last known-good commit without changing database state.
+3. If a migration or data change is involved, restore the database to the approved recovery point in Supabase and verify RLS before reopening traffic.
+4. Reapply only migrations known to be included in the recovered commit.
+5. Run strict TypeScript, lint, security checks, production build, and the authenticated RLS harness against the recovered environment.
+6. Verify login redirect protection, capture storage isolation, action persistence, assistant authorization, and privacy export before resuming beta access.
+
+## Beta operating limits
+
+The private beta should start with 20–30 invited users and a monitored support path. Do not enable broad public signup until authenticated workflow coverage, model availability, storage cleanup, email verification/reset flows, and the remaining development-only minimatch advisory have been reviewed and accepted by the release owner.
