@@ -5,8 +5,12 @@ const DEFAULT_MODEL = "alibaba/qwen-3-14b"
 const DEFAULT_TIMEOUT_MS = 20_000
 const MAX_RETRIES = 2
 
-type ModelHealth = {
-  status: "configured" | "available" | "unavailable" | "billing_required" | "authentication_error" | "disabled"
+export type AiReadiness = {
+  configured: boolean
+  gateway: "reachable" | "unreachable" | "disabled"
+  modelInCatalog: boolean | null
+  generation: "not_tested" | "billing_required" | "authentication_error" | "passed" | "failed"
+  schema: "not_tested" | "validated" | "failed"
   model: string
   checkedAt: string
   detail?: string
@@ -33,11 +37,28 @@ export class AiAuthenticationError extends AiUnavailableError {
   }
 }
 
+export class AiMalformedResponseError extends AiUnavailableError {
+  constructor() {
+    super("The AI provider returned an invalid response.")
+    this.name = "AiMalformedResponseError"
+  }
+}
+
+export function classifyAiFailure(message: string) {
+  const normalized = message.toLowerCase()
+  if (normalized.includes("credit card") || normalized.includes("billing") || normalized.includes("add-credit-card")) return "billing_required" as const
+  if (normalized.includes("unauthorized") || normalized.includes("invalid api key") || normalized.includes("authentication")) return "authentication_error" as const
+  if (normalized.includes("timeout") || normalized.includes("timed out") || normalized.includes("temporarily unavailable") || normalized.includes("429") || normalized.includes("503")) return "transient" as const
+  if (normalized.includes("invalid json") || normalized.includes("malformed") || normalized.includes("schema") || normalized.includes("structured output") || normalized.includes("missing required")) return "malformed_response" as const
+  return "unknown" as const
+}
+
 function classifyProviderError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
-  const normalized = message.toLowerCase()
-  if (normalized.includes("credit card") || normalized.includes("billing") || normalized.includes("add-credit-card")) return new AiBillingRequiredError()
-  if (normalized.includes("unauthorized") || normalized.includes("invalid api key") || normalized.includes("authentication")) return new AiAuthenticationError()
+  const failure = classifyAiFailure(message)
+  if (failure === "billing_required") return new AiBillingRequiredError()
+  if (failure === "authentication_error") return new AiAuthenticationError()
+  if (failure === "malformed_response") return new AiMalformedResponseError()
   return null
 }
 
@@ -48,24 +69,23 @@ export function getAiConfig() {
   return { disabled, model, timeoutMs }
 }
 
-export async function getAiHealth(): Promise<ModelHealth> {
+export async function getAiHealth(): Promise<AiReadiness> {
   const config = getAiConfig()
   const checkedAt = new Date().toISOString()
-  if (config.disabled) return { status: "disabled", model: config.model, checkedAt, detail: "AI is disabled by configuration." }
+  const base = { configured: !config.disabled && Boolean(config.model), model: config.model, checkedAt, modelInCatalog: null as boolean | null, generation: "not_tested" as const, schema: "not_tested" as const }
+  if (config.disabled) return { ...base, configured: false, gateway: "disabled", detail: "AI is disabled by configuration." }
   try {
     const response = await fetch("https://ai-gateway.vercel.sh/v1/models", { signal: AbortSignal.timeout(5_000), cache: "no-store" })
-    if (!response.ok) return { status: "unavailable", model: config.model, checkedAt, detail: `Gateway returned ${response.status}.` }
+    if (!response.ok) return { ...base, gateway: "unreachable", detail: `Gateway returned ${response.status}.` }
     const payload = await response.json() as { data?: Array<{ id?: string }> }
-    const available = payload.data?.some(entry => entry.id === config.model) ?? false
-    return available
-      ? { status: "configured", model: config.model, checkedAt, detail: "Model is present in the gateway catalog; generation entitlement was not probed." }
-      : { status: "configured", model: config.model, checkedAt, detail: "Configured model was not present in the gateway catalog." }
+    const modelInCatalog = payload.data?.some(entry => entry.id === config.model) ?? false
+    return { ...base, gateway: "reachable", modelInCatalog, detail: modelInCatalog ? "Model is present in the gateway catalog; generation entitlement was not probed." : "Configured model was not present in the gateway catalog." }
   } catch (error) {
-    return { status: "unavailable", model: config.model, checkedAt, detail: error instanceof Error ? error.message : "Gateway health check failed." }
+    return { ...base, gateway: "unreachable", detail: error instanceof Error ? error.message : "Gateway health check failed." }
   }
 }
 
-async function runWithRetry<T>(operation: (signal: AbortSignal) => Promise<T>, timeoutMs: number) {
+export async function runWithRetry<T>(operation: (signal: AbortSignal) => Promise<T>, timeoutMs: number) {
   let lastError: unknown
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const controller = new AbortController()

@@ -5,5 +5,5 @@ export const runtime = "nodejs"
 
 export async function GET() {
   const health = await getAiHealth()
-  return NextResponse.json(health, { status: health.status === "unavailable" ? 503 : 200 })
+  return NextResponse.json(health, { status: health.gateway === "unreachable" ? 503 : 200 })
 }

@@ -39,6 +39,9 @@ Tested authentication entry points, protected navigation, server-side API author
 - Signup email verification and password reset completion are blocked on a controlled mailbox; form rendering and reset request behavior were not treated as completion.
 - PDF/image uploads, graph relationships, deadline detection with seeded commitments, prevention resolve/deduplication, notification delivery, and document deletion still need dedicated authenticated fixtures.
 - Deterministic prevention, extraction fallback/unsupported-file handling, source-reference requirements, notification timezone/source mapping, and duplicate-key inputs passed via `pnpm run test:beta-fixtures`.
+- Mocked provider failure fixtures passed via `pnpm run test:ai-failures`: billing and authentication are permanent/non-retryable, malformed JSON/schema responses are non-retryable, transient/timeout-like failures are bounded to two retries, and the rate-limit path rejects the tenth recent AI event.
+- Authenticated RLS verification passed with two users: own reads 2, cross-user reads 0, cross-user updates 0, cross-user deletes 0, anonymous reads 0, invalid-session reads 0. The security assertions also passed for session-derived user IDs, server-derived source IDs, untrusted document instructions, and health-state separation.
+- Browser health check returned `gateway: reachable`, `configured: true`, `modelInCatalog: true`, `generation: not_tested`, and `schema: not_tested`; it did not claim generation success.
 - `/api/ai/health` now reports `configured` for `alibaba/qwen-3-14b`: the model exists in the gateway catalog, but entitlement is not probed by health checks.
 - Direct server-side smoke test traced the failure through auth/configuration and the AI SDK request to the provider: model ID and request format were accepted, but AI Gateway returned `AI Gateway requires a valid credit card on file to service requests`. The adapter now classifies this as `AiBillingRequiredError`, avoids pointless retries, and returns a safe setup-required response without exposing provider details or secrets.
 - Authenticated browser smoke test passed authentication, session authorization, request validation, provider dispatch, and safe error rendering. The UI displayed “AI Gateway billing setup is required before the assistant can generate an answer.” The generated assistant answer was not persisted; the temporary test account had only a user message and no completion audit event, then was deleted.
@@ -60,7 +63,7 @@ Tested authentication entry points, protected navigation, server-side API author
 - Two-user RLS and session-boundary coverage passed; document access is covered at the database ownership level, while a second-user browser session remains a separate optional UI check.
 - Email confirmation and reset-link completion need a controlled mailbox.
 - PDF/image upload, extraction, context graph relationships, seeded deadline detection, prevention resolve/deduplication, notifications, and document deletion need dedicated fixtures.
-- AI assistant success, citations, prompt-injection resistance, and rate-limit behavior need an available authenticated model-backed run.
+- AI assistant success, citations, and prompt-injection resistance need an available authenticated model-backed run; rate limiting passed through the mocked failure fixture and static security assertions.
 - The only remaining audit finding is the documented development-only `minimatch` advisory.
 
 ## Production readiness assessment
