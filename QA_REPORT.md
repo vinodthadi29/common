@@ -37,8 +37,9 @@ Tested authentication entry points, protected navigation, server-side API author
 ## Failed or blocked tests
 
 - Signup email verification and password reset completion are blocked on a controlled mailbox; form rendering and reset request behavior were not treated as completion.
-- PDF/image uploads, extraction, graph relationships, deadline detection with seeded commitments, prevention resolve/deduplication, notification delivery, and document deletion still need dedicated fixtures or an authenticated browser pass.
-- Text capture upload passed, but AI extraction returned the product’s temporary-unavailable state in preview; authenticated extraction and assistant generation remain blocked by AI Gateway/model availability.
+- PDF/image uploads, graph relationships, deadline detection with seeded commitments, prevention resolve/deduplication, notification delivery, and document deletion still need dedicated authenticated fixtures.
+- Deterministic prevention, extraction fallback/unsupported-file handling, source-reference requirements, notification timezone/source mapping, and duplicate-key inputs passed via `pnpm run test:beta-fixtures`.
+- `/api/ai/health` reported `available` for `alibaba/qwen-3-14b`, but authenticated structured extraction still returned the product’s temporary-unavailable state; model catalog availability is not treated as successful generation.
 - The assistant question flow rendered and safely reported temporary unavailability; source citation and prompt-injection behavior remain unverified until model access is available.
 - `pnpm audit --audit-level high` passes with zero high/critical vulnerabilities. One moderate `minimatch` advisory remains only in the ESLint development toolchain: vulnerable `>=7.0.0 <11.0.1`, patched `>=11.0.1`; `eslint@10.14.0` requires `^10.2.6`, so no compatible safe override was applied. Production code does not import this package.
 
@@ -61,4 +62,4 @@ Tested authentication entry points, protected navigation, server-side API author
 
 ## Production readiness assessment
 
-**Not ready for beta invitation yet.** High and critical dependency findings, missing lint tooling, deprecated middleware, and the RLS ownership boundary are resolved. A controlled private beta should wait for AI Gateway/model availability, seeded extraction/prevention/notification fixtures, email verification/reset completion, and explicit release-owner acceptance of the development-only `minimatch` advisory. Backup and recovery instructions are now documented in `DEPLOYMENT.md`.
+**Not ready for beta invitation yet.** High and critical dependency findings, missing lint tooling, deprecated middleware, and the RLS ownership boundary are resolved. The model health catalog is available and the adapter now has timeout, retries, structured validation, rate limiting, usage audit events, fallback states, and a health endpoint, but authenticated generation still returned temporary unavailability. Beta also needs the controlled mailbox workflow, authenticated notification dispatch, seeded document/graph fixtures, and explicit release-owner acceptance of the development-only `minimatch` advisory. Backup, recovery, email, and notification operations are documented in `DEPLOYMENT.md`.

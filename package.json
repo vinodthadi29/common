@@ -9,7 +9,8 @@
     "start": "next start",
     "security:check": "node scripts/security-check.mjs",
     "lint": "eslint .",
-    "test:auth-rls": "RUN_AUTH_E2E=1 node scripts/auth-rls-e2e.mjs"
+    "test:auth-rls": "RUN_AUTH_E2E=1 node scripts/auth-rls-e2e.mjs",
+    "test:beta-fixtures": "node --experimental-strip-types scripts/beta-fixtures.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

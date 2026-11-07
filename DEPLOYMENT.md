@@ -44,6 +44,16 @@ Before a production migration:
 5. Run strict TypeScript, lint, security checks, production build, and the authenticated RLS harness against the recovered environment.
 6. Verify login redirect protection, capture storage isolation, action persistence, assistant authorization, and privacy export before resuming beta access.
 
+## Controlled authentication email workflow
+
+Use a dedicated Supabase test project and a local Mailpit/MailHog inbox or an approved disposable test mailbox. Never use a customer mailbox. Create a disposable confirmed/unconfirmed test user with the service-role E2E script, then exercise these cases in order: signup verification, password reset, expired verification link, malformed/invalid link, and a second use of the same link. Record HTTP/result states without storing link tokens in Git or QA reports, then delete the test user and any generated rows/storage objects.
+
+The current repository has the UI and callback routes, but this controlled-mailbox run is still required before beta approval. Keep email delivery configuration separate from application secrets and rotate any temporary test credentials after the run.
+
+## Notification operations
+
+`POST /api/notifications` schedules deduplicated in-app notifications using the user preference cadence and timezone. `POST /api/notifications/dispatch` is an internal cron endpoint and requires `Authorization: Bearer $NOTIFICATION_CRON_SECRET`; it retries delivery up to three attempts and records audit events. Configure the cron secret only in the server environment, never in browser code. External email delivery is not claimed by the current implementation until a mail provider and delivery receipt workflow are connected.
+
 ## Beta operating limits
 
-The private beta should start with 20–30 invited users and a monitored support path. Do not enable broad public signup until authenticated workflow coverage, model availability, storage cleanup, email verification/reset flows, and the remaining development-only minimatch advisory have been reviewed and accepted by the release owner.
+The private beta should start with 20–30 invited users and a monitored support path. Do not enable broad public signup until authenticated workflow coverage, model generation, storage cleanup, email verification/reset flows, notification dispatch, and the remaining development-only minimatch advisory have been reviewed and accepted by the release owner.
