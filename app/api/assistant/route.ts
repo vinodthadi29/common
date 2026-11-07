@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { AiUnavailableError, generateAnswer } from "@/lib/ai/model-adapter"
+import { AiBillingRequiredError, AiUnavailableError, generateAnswer } from "@/lib/ai/model-adapter"
 import { createClient } from "@/lib/supabase/server"
 
 const bodySchema = z.object({ conversationId: z.string().uuid().optional(), message: z.string().trim().min(1).max(4000) })
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     await supabase.from("assistant_conversations").update({ updated_at: new Date().toISOString() }).eq("id", activeConversation).eq("user_id", user.id)
     return NextResponse.json({ conversationId: activeConversation, answer: result.text, sources })
   } catch (error) {
+    if (error instanceof AiBillingRequiredError) return NextResponse.json({ error: "AI Gateway billing setup is required before the assistant can generate an answer." }, { status: 503 })
     if (error instanceof AiUnavailableError) return NextResponse.json({ error: "The assistant is temporarily unavailable. Your question was not saved as an answer." }, { status: 503 })
     return NextResponse.json({ error: "The assistant could not complete that request." }, { status: 500 })
   }

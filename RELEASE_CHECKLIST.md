@@ -38,7 +38,7 @@ pnpm run test:auth-rls
 ## Deployment blockers
 
 - Do not release until `pnpm run test:auth-rls` passes against the target Supabase project.
-- Authenticated browser pass completed for login, protected navigation, text capture upload, action creation/completion, prevention empty-state scan, and session expiration. The AI health endpoint is available, but authenticated model generation/extraction remains blocked; signup confirmation, password reset completion, graph relationships, notifications, and assistant citations remain blocked or unverified as recorded in `QA_REPORT.md`.
+- Authenticated browser pass completed for login, protected navigation, text capture upload, action creation/completion, prevention empty-state scan, and session expiration. The AI model is catalog-configured, but a direct smoke test identified a Vercel AI Gateway billing-entitlement blocker; authenticated model generation/extraction remains **BLOCKED** until billing is enabled. Signup confirmation, password reset completion, graph relationships, notifications, and assistant citations remain blocked or unverified as recorded in `QA_REPORT.md`.
 - Run `pnpm run test:beta-fixtures` before each beta candidate; it covers deterministic prevention, extraction fallback constraints, source references, timezone formatting, and notification dedup inputs.
 - Run the controlled Mailpit/disposable-mailbox workflow in `DEPLOYMENT.md` for signup, reset, expired, invalid, and reused links.
 - Review and accept the remaining development-only `minimatch` advisory or upgrade the Next ESLint toolchain when a compatible patched version is available. Do not force an incompatible override.

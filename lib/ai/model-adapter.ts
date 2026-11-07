@@ -6,7 +6,7 @@ const DEFAULT_TIMEOUT_MS = 20_000
 const MAX_RETRIES = 2
 
 type ModelHealth = {
-  status: "configured" | "available" | "unavailable" | "disabled"
+  status: "configured" | "available" | "unavailable" | "billing_required" | "authentication_error" | "disabled"
   model: string
   checkedAt: string
   detail?: string
@@ -17,6 +17,28 @@ export class AiUnavailableError extends Error {
     super(message)
     this.name = "AiUnavailableError"
   }
+}
+
+export class AiBillingRequiredError extends AiUnavailableError {
+  constructor() {
+    super("AI Gateway billing setup is required for generation.")
+    this.name = "AiBillingRequiredError"
+  }
+}
+
+export class AiAuthenticationError extends AiUnavailableError {
+  constructor() {
+    super("AI Gateway authentication is not available.")
+    this.name = "AiAuthenticationError"
+  }
+}
+
+function classifyProviderError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  const normalized = message.toLowerCase()
+  if (normalized.includes("credit card") || normalized.includes("billing") || normalized.includes("add-credit-card")) return new AiBillingRequiredError()
+  if (normalized.includes("unauthorized") || normalized.includes("invalid api key") || normalized.includes("authentication")) return new AiAuthenticationError()
+  return null
 }
 
 export function getAiConfig() {
@@ -36,7 +58,7 @@ export async function getAiHealth(): Promise<ModelHealth> {
     const payload = await response.json() as { data?: Array<{ id?: string }> }
     const available = payload.data?.some(entry => entry.id === config.model) ?? false
     return available
-      ? { status: "available", model: config.model, checkedAt }
+      ? { status: "configured", model: config.model, checkedAt, detail: "Model is present in the gateway catalog; generation entitlement was not probed." }
       : { status: "configured", model: config.model, checkedAt, detail: "Configured model was not present in the gateway catalog." }
   } catch (error) {
     return { status: "unavailable", model: config.model, checkedAt, detail: error instanceof Error ? error.message : "Gateway health check failed." }
@@ -51,6 +73,8 @@ async function runWithRetry<T>(operation: (signal: AbortSignal) => Promise<T>, t
     try {
       return await operation(controller.signal)
     } catch (error) {
+      const classified = classifyProviderError(error)
+      if (classified) throw classified
       lastError = error
       if (attempt < MAX_RETRIES) await new Promise(resolve => setTimeout(resolve, 250 * 2 ** attempt))
     } finally {

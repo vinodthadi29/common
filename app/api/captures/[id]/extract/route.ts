@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { AiUnavailableError, checkAiRateLimit, generateStructured } from "@/lib/ai/model-adapter"
+import { AiBillingRequiredError, AiUnavailableError, checkAiRateLimit, generateStructured } from "@/lib/ai/model-adapter"
 import { createClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
@@ -30,6 +30,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ ...output, entityIds: [...entityByName.values()] })
   } catch (error) {
     await supabase.from("captured_items").update({ processing_status: "needs_review" }).eq("id", id).eq("user_id", user.id)
+    if (error instanceof AiBillingRequiredError) return NextResponse.json({ status: "needs_review", error: "AI Gateway billing setup is required before extraction can run. No facts were invented or stored." }, { status: 503 })
     if (error instanceof AiUnavailableError) return NextResponse.json({ status: "needs_review", error: "AI extraction is temporarily unavailable. No facts were invented or stored." }, { status: 503 })
     return NextResponse.json({ error: "AI extraction could not validate the source." }, { status: 422 })
   }
