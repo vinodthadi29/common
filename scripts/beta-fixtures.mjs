@@ -1,4 +1,5 @@
 import { buildPreventionAlerts } from "../lib/prevention/rules.ts"
+import { dispatchWithRetry } from "../lib/notifications/dispatcher.ts"
 import { formatScheduledTime, notificationForAlert, notificationForTask } from "../lib/notifications/scheduler.ts"
 
 function assert(condition, message) { if (!condition) throw new Error(message) }
@@ -28,4 +29,9 @@ const alertNotification = notificationForAlert({ id: "alert-1", title: "Overdue:
 assert(taskNotification.task_id === "task-1" && taskNotification.alert_id === null, "task notification source missing")
 assert(alertNotification.alert_id === "alert-1" && alertNotification.task_id === null, "alert notification source missing")
 assert(formatScheduledTime(taskNotification.scheduled_for, "not/a-timezone"), "invalid timezone fallback failed")
-console.log(JSON.stringify({ status: "passed", prevention: { upcoming: 1, overdue: 1, excludedCompleted: 1, excludedFarAway: 1, deterministic: true }, extraction: { empty: true, unsupported: true, sourceReferences: true }, notifications: { timezone: true, taskAndAlertSources: true, duplicateKeyInputs: true } }))
+let mockedAttempts = 0
+const mockedSuccess = await dispatchWithRetry({ id: "notification-1", delivery_attempts: 0 }, async (_notification, attempt) => { mockedAttempts = attempt; if (attempt < 3) throw new Error("mock channel unavailable") })
+assert(mockedSuccess.delivered && mockedSuccess.attempts === 3 && mockedAttempts === 3, "mock delivery retry fixture failed")
+const mockedFailure = await dispatchWithRetry({ id: "notification-2", delivery_attempts: 0 }, async () => { throw new Error("mock channel permanently unavailable") })
+assert(!mockedFailure.delivered && mockedFailure.attempts === 3 && mockedFailure.error, "mock delivery failure fixture failed")
+console.log(JSON.stringify({ status: "passed", prevention: { upcoming: 1, overdue: 1, excludedCompleted: 1, excludedFarAway: 1, deterministic: true }, extraction: { empty: true, unsupported: true, sourceReferences: true }, notifications: { timezone: true, taskAndAlertSources: true, duplicateKeyInputs: true, mockedRetries: true, mockedFailureAuditInput: true } }))

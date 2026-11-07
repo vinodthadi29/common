@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { dispatchWithRetry } from "@/lib/notifications/dispatcher"
 
 export const runtime = "nodejs"
 
@@ -19,14 +20,19 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: "Unable to load notification queue." }, { status: 500 })
   let delivered = 0; let failed = 0
   for (const notification of pending ?? []) {
-    try {
-      const { error: deliveryError } = await supabase.from("in_app_notifications").update({ delivered_at: now, delivery_attempts: notification.delivery_attempts + 1, last_error: null }).eq("id", notification.id).is("delivered_at", null)
-      if (deliveryError) throw deliveryError
-      await supabase.from("audit_events").insert({ user_id: notification.user_id, actor_type: "system", event_type: "notification.delivered", entity_type: "in_app_notification", entity_id: notification.id, payload: { attempt: notification.delivery_attempts + 1 } })
+    const result = await dispatchWithRetry(notification, async (queued, attempt) => {
+      const { error: deliveryError } = await supabase.from("in_app_notifications").update({ delivered_at: now, delivery_attempts: attempt, last_error: null }).eq("id", queued.id).is("delivered_at", null)
+      if (deliveryError) {
+        await supabase.from("in_app_notifications").update({ delivery_attempts: attempt, last_error: deliveryError.message }).eq("id", queued.id)
+        throw deliveryError
+      }
+    })
+    if (result.delivered) {
+      await supabase.from("audit_events").insert({ user_id: notification.user_id, actor_type: "system", event_type: "notification.delivered", entity_type: "in_app_notification", entity_id: notification.id, payload: { attempt: result.attempts } })
       delivered++
-    } catch (deliveryError) {
-      await supabase.from("in_app_notifications").update({ delivery_attempts: notification.delivery_attempts + 1, last_error: deliveryError instanceof Error ? deliveryError.message : "Delivery failed" }).eq("id", notification.id)
-      await supabase.from("audit_events").insert({ user_id: notification.user_id, actor_type: "system", event_type: "notification.failed", entity_type: "in_app_notification", entity_id: notification.id, payload: { attempt: notification.delivery_attempts + 1 } })
+    } else {
+      await supabase.from("in_app_notifications").update({ delivery_attempts: result.attempts, last_error: result.error }).eq("id", notification.id)
+      await supabase.from("audit_events").insert({ user_id: notification.user_id, actor_type: "system", event_type: "notification.failed", entity_type: "in_app_notification", entity_id: notification.id, payload: { attempt: result.attempts, error: result.error } })
       failed++
     }
   }

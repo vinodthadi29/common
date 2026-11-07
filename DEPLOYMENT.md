@@ -11,6 +11,7 @@
 
 The app requires Supabase URL and publishable/anon key variables at runtime. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only and use it only for isolated E2E administration or approved recovery scripts. AI generation uses the Vercel AI Gateway through the configured model name. The current model `alibaba/qwen-3-14b` is present in the gateway catalog, but generation is blocked until the Vercel team has a valid credit card on file; this is an account entitlement issue, not a model or request-format issue. `/api/ai/health` intentionally reports `gateway: reachable`, `modelInCatalog: true`, `generation: not_tested`, and `schema: not_tested`; catalog reachability is never treated as a generation pass.
 
+Email/password recovery now completes the loop: reset requests use the callback route, recovery callbacks land on `/reset-password`, password updates use Supabase Auth, and callback destinations are allowlisted to prevent open redirects. Synthetic document-to-facts-to-graph and mocked notification delivery fixtures are available for release verification.
 Never copy secrets into Git, QA reports, blueprints, browser fixtures, or client-side code. Rotate the service-role key immediately if it appears in logs or a committed file.
 
 ## Database migration status
