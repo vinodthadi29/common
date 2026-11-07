@@ -1,5 +1,40 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import { AlertTriangle, ArrowRight, Check, Clock3, RefreshCw } from "lucide-react"
-type Alert={id:string;category:string;severity:string;title:string;problem_description:string;why_it_matters:string;recommended_action:string;due_at?:string;confidence:number;review_status:string}
-export function PreventionCenter(){const [alerts,setAlerts]=useState<Alert[]>([]);const [busy,setBusy]=useState(false);async function load(){const r=await fetch('/api/prevention');const d=await r.json();setAlerts(d.alerts??[])}useEffect(()=>{load()},[]);async function scan(){setBusy(true);await fetch('/api/prevention',{method:'POST'});await load();setBusy(false)}async function resolve(id:string){await fetch('/api/prevention',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,review_status:'resolved'})});load()}return <div className="prevention-center"><div className="action-center-head"><div><p className="common-eyebrow"><AlertTriangle/> Prevention</p><h2>Catch the avoidable early.</h2></div><button className="secondary-button" onClick={scan} disabled={busy}><RefreshCw className={busy?'spin':''}/> {busy?'Scanning…':'Run scan'}</button></div>{alerts.length===0?<div className="empty-state prevention-empty"><Check/><strong>No active risks detected.</strong><span>Run a scan whenever new commitments enter your graph.</span></div>:<div className="alert-list">{alerts.map(alert=><article className={`alert-card alert-${alert.severity}`} key={alert.id}><div className="alert-card-top"><span className="severity-pill">{alert.severity}</span>{alert.due_at&&<span className="task-due"><Clock3/> {new Date(alert.due_at).toLocaleDateString()}</span>}</div><h3>{alert.title}</h3><p>{alert.problem_description}</p><div className="alert-why"><strong>Why it matters</strong><span>{alert.why_it_matters}</span></div><div className="alert-action"><ArrowRight/><span>{alert.recommended_action}</span></div><div className="alert-footer"><span>{Math.round(alert.confidence*100)}% confidence</span><button onClick={()=>resolve(alert.id)}>Resolve</button></div></article>)}</div>}</div>}
+
+type Alert = { id: string; category: string; severity: string; title: string; problem_description: string; why_it_matters: string; recommended_action: string; due_at?: string; confidence: number; review_status: string }
+
+export function PreventionCenter() {
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [busy, setBusy] = useState(false)
+
+  async function load() {
+    const response = await fetch("/api/prevention")
+    const data = await response.json()
+    setAlerts(data.alerts ?? [])
+  }
+
+  useEffect(() => {
+    let active = true
+    fetch("/api/prevention").then(async response => {
+      const data = await response.json()
+      if (active) setAlerts(data.alerts ?? [])
+    })
+    return () => { active = false }
+  }, [])
+
+  async function scan() {
+    setBusy(true)
+    await fetch("/api/prevention", { method: "POST" })
+    await load()
+    setBusy(false)
+  }
+
+  async function resolve(id: string) {
+    await fetch("/api/prevention", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, review_status: "resolved" }) })
+    await load()
+  }
+
+  return <div className="prevention-center"><div className="action-center-head"><div><p className="common-eyebrow"><AlertTriangle /> Prevention</p><h2>Catch the avoidable early.</h2></div><button className="secondary-button" onClick={() => void scan()} disabled={busy}><RefreshCw className={busy ? "spin" : ""} /> {busy ? "Scanning…" : "Run scan"}</button></div>{alerts.length === 0 ? <div className="empty-state prevention-empty"><Check /><strong>No active risks detected.</strong><span>Run a scan whenever new commitments enter your graph.</span></div> : <div className="alert-list">{alerts.map(alert => <article className={`alert-card alert-${alert.severity}`} key={alert.id}><div className="alert-card-top"><span className="severity-pill">{alert.severity}</span>{alert.due_at && <span className="task-due"><Clock3 /> {new Date(alert.due_at).toLocaleDateString()}</span>}</div><h3>{alert.title}</h3><p>{alert.problem_description}</p><div className="alert-why"><strong>Why it matters</strong><span>{alert.why_it_matters}</span></div><div className="alert-action"><ArrowRight /><span>{alert.recommended_action}</span></div><div className="alert-footer"><span>{Math.round(alert.confidence * 100)}% confidence</span><button onClick={() => void resolve(alert.id)}>Resolve</button></div></article>)}</div>}</div>
+}

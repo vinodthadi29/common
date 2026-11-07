@@ -19,13 +19,21 @@ Tested authentication entry points, protected navigation, server-side API author
 - Assistant preview rendered at desktop `966x609` and mobile `375x667` without browser console errors.
 - Assistant UI has keyboard-submit protection for IME composition, accessible labels, source chips, privacy export, and conversation deletion controls.
 - Production build emitted baseline security headers configuration.
+- `pnpm run test:auth-rls` passed against the connected Supabase project: two real users, own reads, zero cross-user reads, zero cross-user updates, zero cross-user deletes, zero anonymous reads, and zero invalid-session reads. Generated users and rows were deleted in cleanup.
+
+## Resolved in follow-up
+
+- Removed the unused `shadcn` runtime dependency and its vulnerable MCP/Express/Hono chain.
+- Updated Next.js to 16.4.5.
+- Added ESLint 10 and `eslint-config-next` 16.4.3 with flat config; `pnpm run lint` now passes.
+- Migrated `middleware.ts` to the supported Next.js 16 `proxy.ts` convention while preserving Supabase session refresh and route redirects.
+- Added `scripts/auth-rls-e2e.mjs` and `pnpm run test:auth-rls` for real two-user Supabase RLS verification.
 
 ## Failed or blocked tests
 
-- ESLint could not run because the repository has no `eslint` executable or ESLint dependency. This is a tooling gap, not an ignored lint failure.
-- `pnpm audit --audit-level high` failed: 25 vulnerabilities were reported, including high-severity advisories in transitive `zod` and `body-parser` paths through `shadcn` / MCP dependencies. These require dependency-tree remediation before production release.
-- Full signup, email verification, password recovery completion, CRUD, RLS cross-account isolation, uploads, extraction, graph relationships, deadline detection, prevention persistence, action completion, notifications, and AI generation could not be completed end-to-end without a confirmed test account, mailbox, and safe test fixtures in the connected Supabase project.
-- Build reports the Next.js 16 middleware convention deprecation; `middleware.ts` should migrate to `proxy.ts` before the framework removes compatibility.
+- Full authenticated E2E execution requires an approved isolated Supabase test environment. The harness is destructive to only its generated fixtures, but must not run against production data without that approval.
+- `pnpm audit --audit-level high` now passes with zero high/critical vulnerabilities. One moderate `minimatch` advisory remains in the ESLint-only development toolchain because the current `eslint-config-next` dependency graph does not yet accept the patched major version.
+- Signup confirmation, password recovery completion, uploads, extraction, graph relationships, deadline detection, prevention persistence, action completion, notifications, and authenticated AI generation still require an authenticated browser/data fixture pass.
 
 ## Fixed bugs
 
@@ -46,4 +54,4 @@ Tested authentication entry points, protected navigation, server-side API author
 
 ## Production readiness assessment
 
-**Not production-ready.** The core application builds and the unauthenticated boundary is now protected, but high-severity dependency findings, missing lint tooling, deprecated middleware convention, and incomplete authenticated/database end-to-end coverage remain release blockers.
+**Not production-ready.** High and critical dependency findings, missing lint tooling, and deprecated middleware are resolved. Release remains blocked until the real authenticated Supabase RLS harness passes against an isolated target environment, the authenticated browser workflow matrix is completed, and the remaining development-only moderate `minimatch` advisory is accepted or removed.
