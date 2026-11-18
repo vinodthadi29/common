@@ -1,7 +1,7 @@
 import { generateText, Output } from "ai"
 import { z } from "zod"
 
-const DEFAULT_MODEL = "alibaba/qwen-3-14b"
+const DEFAULT_MODEL = "moonshotai/kimi-k3"
 const DEFAULT_TIMEOUT_MS = 20_000
 const MAX_RETRIES = 2
 
